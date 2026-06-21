@@ -14,7 +14,11 @@ import com.example.financeapp.ui.screens.statistics.StatisticsScreen
 import com.example.financeapp.ui.screens.transaction.TransactionScreen
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    // 🛠️ BỔ SUNG: Nhận 2 sự kiện điều hướng từ AppNavGraph truyền xuống
+    onNavigateToChangePassword: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -49,7 +53,11 @@ fun MainScreen() {
 
             // Màn hình Cá nhân thực tế
             composable(Screen.Profile.route) {
-                ProfileScreen()
+                // 🛠️ SỬA CHỖ NÀY: Truyền tiếp 2 sự kiện vào ProfileScreen để thực hiện bấm nút
+                ProfileScreen(
+                    onNavigateToChangePassword = onNavigateToChangePassword,
+                    onLogoutClick = onLogoutClick
+                )
             }
         }
     }

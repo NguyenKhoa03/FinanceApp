@@ -5,19 +5,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.financeapp.FinanceApplication
 import com.example.financeapp.viewmodel.ProfileViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel(),
-    onNavigateToChangePassword: () -> Unit, // Thêm lambda để chuyển sang màn hình Đổi mật khẩu
-    onLogoutClick: () -> Unit // Thêm lambda để quay lại màn hình Login
+    onNavigateToChangePassword: () -> Unit,
+    onLogoutClick: () -> Unit
 ) {
     val username by profileViewModel.username.collectAsState()
     val email by profileViewModel.email.collectAsState()
+
+    // 🛠️ BỔ SUNG: Khai báo Scope và Context để thao tác với Room DB khi đăng xuất
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current.applicationContext as FinanceApplication
 
     Column(
         modifier = Modifier
@@ -65,7 +73,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Giai đoạn 3: Gọi sự kiện chuyển màn hình đổi mật khẩu
         Button(
             onClick = onNavigateToChangePassword,
             modifier = Modifier.fillMaxWidth()
@@ -75,9 +82,21 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Giai đoạn 2: Gọi sự kiện đăng xuất quay về Login
+        // 🛠️ SỬA ĐỔI: Thực hiện logic Đăng xuất thật xóa sạch DB ngầm trước khi về Login
         OutlinedButton(
-            onClick = onLogoutClick,
+            onClick = {
+                coroutineScope.launch {
+                    try {
+                        // 1. Xóa toàn bộ dữ liệu giao dịch cũ lưu trên máy để bảo mật tài khoản
+                        context.database.transactionDao().deleteAll()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        // 2. Kích hoạt lambda chuyển hướng về LoginScreen (đã dọn sạch Stack bên NavGraph)
+                        onLogoutClick()
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Đăng xuất", color = MaterialTheme.colorScheme.error)

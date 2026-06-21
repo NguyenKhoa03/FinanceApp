@@ -71,4 +71,8 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    // ==== 🛠️ BỔ SUNG: RETROFIT & GSON CONVERTER (Bước 5) ====
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
 }
