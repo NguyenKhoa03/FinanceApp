@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.financeapp.ui.screens.auth.LoginScreen
-import com.example.financeapp.ui.screens.auth.RegisterScreen
+import com.example.financeapp.ui.screens.MainScreen
+import com.example.financeapp.ui.screens.login.LoginScreen
+import com.example.financeapp.ui.screens.register.RegisterScreen
+import com.example.financeapp.ui.screens.profile.ChangePasswordScreen
 
 @Composable
 fun AppNavGraph() {
@@ -15,29 +17,55 @@ fun AppNavGraph() {
         navController = navController,
         startDestination = Screen.Login.route
     ) {
+        // 1. Màn hình Đăng nhập
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    // Xóa sạch lịch sử Login và bay thẳng vào MainScreen có thanh Bottom Bar
-                    navController.navigate("main_flow") {
+                onLoginClick = {
+                    navController.navigate(Screen.MainFlow.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onNavigateToRegister = {
+                onRegisterClick = {
                     navController.navigate(Screen.Register.route)
                 }
             )
         }
+
+        // 2. Màn hình Đăng ký
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = {
+                onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
-        // Điểm bao bọc cho 5 màn hình có chứa Bottom Bar
-        composable("main_flow") {
-            MainScreen()
+
+        // 3. Luồng chính sau khi Login thành công (Chứa các Tab Home, Transaction, Budget, Profile)
+        composable(Screen.MainFlow.route) {
+            // Truyền các sự kiện Logout và chuyển màn hình Đổi mật khẩu vào MainScreen
+            MainScreen(
+                onNavigateToChangePassword = {
+                    navController.navigate("change_password")
+                },
+                onLogoutClick = {
+                    navController.navigate(Screen.Login.route) {
+                        // Xóa sạch lịch sử để không bấm phím Back quay lại MainFlow được
+                        popUpTo(Screen.MainFlow.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 4. Màn hình Đổi mật khẩu (Giai đoạn 3)
+        composable("change_password") {
+            ChangePasswordScreen(
+                onBackClick = {
+                    navController.popBackStack() // Quay lại MainScreen
+                },
+                onSaveSuccess = {
+                    navController.popBackStack() // Lưu thành công cũng quay lại MainScreen
+                }
+            )
         }
     }
 }
