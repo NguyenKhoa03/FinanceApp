@@ -12,10 +12,10 @@ import com.example.financeapp.ui.screens.home.HomeScreen
 import com.example.financeapp.ui.screens.profile.ProfileScreen
 import com.example.financeapp.ui.screens.statistics.StatisticsScreen
 import com.example.financeapp.ui.screens.transaction.TransactionScreen
+import com.example.financeapp.ui.screens.category.CategoryScreen
 
 @Composable
 fun MainScreen(
-    // 🛠️ BỔ SUNG: Nhận 2 sự kiện điều hướng từ AppNavGraph truyền xuống
     onNavigateToChangePassword: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
@@ -31,32 +31,37 @@ fun MainScreen(
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(padding)
         ) {
-            // Màn hình Tổng quan (Đã kết nối ViewModel)
             composable(Screen.Home.route) {
                 HomeScreen()
             }
 
-            // Màn hình Giao dịch thực tế
             composable(Screen.Transaction.route) {
-                TransactionScreen()
+                TransactionScreen(
+                    onNavigateToCategories = {
+                        navController.navigate(Screen.Categories.route)
+                    }
+                )
             }
 
-            // Màn hình Ngân sách thực tế
             composable(Screen.Budget.route) {
                 BudgetScreen()
             }
 
-            // Màn hình Thống kê thực tế
             composable(Screen.Statistics.route) {
                 StatisticsScreen()
             }
 
-            // Màn hình Cá nhân thực tế
             composable(Screen.Profile.route) {
-                // 🛠️ SỬA CHỖ NÀY: Truyền tiếp 2 sự kiện vào ProfileScreen để thực hiện bấm nút
                 ProfileScreen(
                     onNavigateToChangePassword = onNavigateToChangePassword,
                     onLogoutClick = onLogoutClick
+                )
+            }
+
+            // Route mới cho quản lý danh mục
+            composable(Screen.Categories.route) {
+                CategoryScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

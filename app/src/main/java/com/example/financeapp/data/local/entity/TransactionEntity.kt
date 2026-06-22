@@ -5,10 +5,13 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "transactions")
 data class TransactionEntity(
-    @PrimaryKey val id: Int,
-    val title: String,
-    val amount: Double,
-    val category: String,
+    @PrimaryKey(autoGenerate = true)
+    val transaction_id: Int = 0,
+    val user_id: Int,
+    val account_id: Int,
+    val category_id: Int,
     val type: String,
-    val date: String
+    val amount: Long,
+    val note: String? = null,
+    val transaction_date: Long // Kiểu dữ liệu Long (timestamp) đúng như bạn yêu cầu
 )

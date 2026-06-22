@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.financeapp.FinanceApplication
 import com.example.financeapp.data.local.entity.CategoryEntity
 import com.example.financeapp.ui.theme.CategoryColors
+// 🛠️ ĐÃ FIX: Chỉ định cụ thể tường minh Factory và ViewModel để Room/Dagger không nhận diện nhầm
 import com.example.financeapp.viewmodel.CategoryViewModel
 import com.example.financeapp.viewmodel.CategoryViewModelFactory
 
@@ -79,7 +80,8 @@ fun CategoryScreen(onBack: () -> Unit) {
         AddCategoryDialog(
             onDismiss = { showAddDialog = false },
             onSave = { name, type, color ->
-                viewModel.addCategory(name, type, color.toArgb())
+                val hexColor = String.format("#%06X", 0xFFFFFF and color.toArgb())
+                viewModel.addCategory(name, type, hexColor)
                 showAddDialog = false
             }
         )
@@ -88,6 +90,20 @@ fun CategoryScreen(onBack: () -> Unit) {
 
 @Composable
 fun CategoryItem(category: CategoryEntity, onDelete: () -> Unit) {
+    val boxColor = try {
+        if (!category.color.isNullOrEmpty()) {
+            if (category.color.startsWith("#")) {
+                Color(android.graphics.Color.parseColor(category.color))
+            } else {
+                Color(category.color.toIntOrNull() ?: android.graphics.Color.GRAY)
+            }
+        } else {
+            Color.Gray
+        }
+    } catch (e: Exception) {
+        Color.Gray
+    }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -100,13 +116,13 @@ fun CategoryItem(category: CategoryEntity, onDelete: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .background(Color(category.color), CircleShape)
+                        .background(boxColor, CircleShape)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(text = category.name, fontWeight = FontWeight.Bold)
+                    Text(text = category.category_name, fontWeight = FontWeight.Bold)
                     Text(
-                        text = if (category.type == "income") "Thu nhập" else "Chi tiêu",
+                        text = if (category.type.uppercase() == "THU NHẬP" || category.type.lowercase() == "income") "Thu nhập" else "Chi tiêu",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -124,7 +140,7 @@ fun AddCategoryDialog(
     onSave: (String, String, Color) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("expense") }
+    var type by remember { mutableStateOf("CHI PHÍ") }
     var selectedColor by remember { mutableStateOf(CategoryColors.palette[0]) }
 
     AlertDialog(
@@ -140,15 +156,15 @@ fun AddCategoryDialog(
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = type == "expense", onClick = { type = "expense" })
+                    RadioButton(selected = type == "CHI PHÍ", onClick = { type = "CHI PHÍ" })
                     Text("Chi tiêu")
                     Spacer(modifier = Modifier.width(8.dp))
-                    RadioButton(selected = type == "income", onClick = { type = "income" })
+                    RadioButton(selected = type == "THU NHẬP", onClick = { type = "THU NHẬP" })
                     Text("Thu nhập")
                 }
 
                 Text("Chọn màu sắc:", style = MaterialTheme.typography.bodyMedium)
-                
+
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(5),
                     modifier = Modifier.height(150.dp),

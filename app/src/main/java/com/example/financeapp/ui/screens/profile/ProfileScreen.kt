@@ -12,27 +12,28 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.financeapp.FinanceApplication
 import com.example.financeapp.viewmodel.ProfileViewModel
+// 🛠️ ĐÃ THÊM: Import Factory từ package viewmodel để sửa lỗi Unresolved reference
+import com.example.financeapp.viewmodel.ProfileViewModelFactory
 import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
-    profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToChangePassword: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    val username by profileViewModel.username.collectAsState()
-    val email by profileViewModel.email.collectAsState()
-
-    // 🛠️ BỔ SUNG: Khai báo Scope và Context để thao tác với Room DB khi đăng xuất
-    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext as FinanceApplication
+    val profileViewModel: ProfileViewModel = viewModel(
+        factory = ProfileViewModelFactory(context.userRepository)
+    )
+
+    val displayName by profileViewModel.displayName.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
         Text(
             text = "Tài khoản 👤",
             style = MaterialTheme.typography.headlineSmall
@@ -46,26 +47,13 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-
                 Text(
                     text = "Tên người dùng",
                     style = MaterialTheme.typography.bodySmall
                 )
 
                 Text(
-                    text = username,
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Email",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Text(
-                    text = email,
+                    text = displayName,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -82,17 +70,15 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 🛠️ SỬA ĐỔI: Thực hiện logic Đăng xuất thật xóa sạch DB ngầm trước khi về Login
         OutlinedButton(
             onClick = {
                 coroutineScope.launch {
                     try {
-                        // 1. Xóa toàn bộ dữ liệu giao dịch cũ lưu trên máy để bảo mật tài khoản
+                        context.userRepository.logout()
                         context.database.transactionDao().deleteAll()
                     } catch (e: Exception) {
                         e.printStackTrace()
                     } finally {
-                        // 2. Kích hoạt lambda chuyển hướng về LoginScreen (đã dọn sạch Stack bên NavGraph)
                         onLogoutClick()
                     }
                 }

@@ -1,23 +1,51 @@
 package com.example.financeapp.ui.screens.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.financeapp.FinanceApplication
+import com.example.financeapp.viewmodel.ChangePasswordState
+import com.example.financeapp.viewmodel.ChangePasswordViewModel
+// 🛠️ ĐÃ THÊM: Import Factory từ package viewmodel để sửa lỗi Unresolved reference
+import com.example.financeapp.viewmodel.ChangePasswordViewModelFactory
 
 @Composable
 fun ChangePasswordScreen(
     onBackClick: () -> Unit,
     onSaveSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as FinanceApplication
+    val viewModel: ChangePasswordViewModel = viewModel(
+        factory = ChangePasswordViewModelFactory(app.userRepository)
+    )
+
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    // Biến quản lý trạng thái thông báo lỗi hiển thị lên giao diện
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(state) {
+        when (state) {
+            is ChangePasswordState.Success -> {
+                Toast.makeText(context, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show()
+                onSaveSuccess()
+                viewModel.resetState()
+            }
+            is ChangePasswordState.Error -> {
+                Toast.makeText(context, (state as ChangePasswordState.Error).message, Toast.LENGTH_SHORT).show()
+                viewModel.resetState()
+            }
+            else -> {}
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -31,81 +59,61 @@ fun ChangePasswordScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 1. Ô nhập Mật khẩu cũ
         OutlinedTextField(
             value = oldPassword,
             onValueChange = { oldPassword = it },
             label = { Text("Mật khẩu cũ") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state !is ChangePasswordState.Loading
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 2. Ô nhập Mật khẩu mới
         OutlinedTextField(
             value = newPassword,
-            onValueChange = {
-                newPassword = it
-                if (it.length >= 8) errorMessage = null // Tự động xóa lỗi khi người dùng gõ đủ 8 ký tự
-            },
+            onValueChange = { newPassword = it },
             label = { Text("Mật khẩu mới") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            isError = errorMessage != null // Đổi viền thành màu đỏ nếu có lỗi
+            enabled = state !is ChangePasswordState.Loading
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3. Ô nhập lại Mật khẩu mới
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             label = { Text("Nhập lại mật khẩu mới") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state !is ChangePasswordState.Loading
         )
-
-        // Vùng hiển thị thông báo lỗi bằng chữ màu đỏ nếu Validation thất bại
-        if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Hàng chứa hai nút Hủy và Lưu
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = onBackClick,
-                modifier = Modifier.weight(1f)
+        if (state is ChangePasswordState.Loading) {
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Hủy")
-            }
+                OutlinedButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Hủy")
+                }
 
-            Button(
-                onClick = {
-                    // --- LOGIC VALIDATION THEO ĐỒ ÁN YÊU CẦU ---
-                    if (newPassword.length < 8) {
-                        errorMessage = "Mật khẩu mới phải có ít nhất 8 ký tự!"
-                    } else if (newPassword != confirmPassword) {
-                        errorMessage = "Mật khẩu nhập lại không trùng khớp!"
-                    } else {
-                        errorMessage = null
-                        // Tạm thời kích hoạt callback thành công (Sau này Người 1 sẽ chèn cập nhật UserEntity ở đây)
-                        onSaveSuccess()
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Lưu")
+                Button(
+                    onClick = {
+                        viewModel.changePassword(oldPassword, newPassword, confirmPassword)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Lưu")
+                }
             }
         }
     }

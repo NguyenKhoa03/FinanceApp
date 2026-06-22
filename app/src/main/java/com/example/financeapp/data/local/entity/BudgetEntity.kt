@@ -5,8 +5,10 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "budgets")
 data class BudgetEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val categoryId: Int,
-    val limitAmount: Double,
-    val monthYear: String // Định dạng "MM/yyyy"
+    @PrimaryKey(autoGenerate = true)
+    val budget_id: Int = 0,
+    val user_id: Int,
+    val category_id: Int,
+    val limit_amount: Long,
+    val month_year: String
 )

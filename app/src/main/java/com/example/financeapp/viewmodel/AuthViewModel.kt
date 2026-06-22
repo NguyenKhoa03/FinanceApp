@@ -8,6 +8,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// Cấu trúc AuthState đồng bộ để LoginScreen lấy được thuộc tính 'role'
+sealed class AuthState {
+    object Idle : AuthState()
+    object Loading : AuthState()
+    data class Success(val role: String) : AuthState() // Mang chuỗi quyền hạn "USER" hoặc "ADMIN"
+    data class Error(val message: String) : AuthState()
+}
+
 class AuthViewModel(private val userRepository: UserRepository) : ViewModel() {
 
     private val _loginState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -15,6 +23,8 @@ class AuthViewModel(private val userRepository: UserRepository) : ViewModel() {
 
     private val _registerState = MutableStateFlow<AuthState>(AuthState.Idle)
     val registerState = _registerState.asStateFlow()
+
+    private val passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{9,}$".toRegex()
 
     fun login(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
@@ -24,11 +34,13 @@ class AuthViewModel(private val userRepository: UserRepository) : ViewModel() {
 
         _loginState.value = AuthState.Loading
         viewModelScope.launch {
-            val user = userRepository.login(username, password)
-            if (user != null) {
-                _loginState.value = AuthState.Success(user)
-            } else {
-                _loginState.value = AuthState.Error("Login failed: Sai tên đăng nhập hoặc mật khẩu")
+            // Khớp chính xác phương thức gọi hàm loginRemote từ Repository của bạn
+            val result = userRepository.loginRemote(username, password)
+            result.onSuccess { user ->
+                // Trích xuất quyền hạn từ thực thể User trả về để truyền tiếp ra ngoài
+                _loginState.value = AuthState.Success(user.role)
+            }.onFailure { e ->
+                _loginState.value = AuthState.Error("${e.message}")
             }
         }
     }
@@ -39,13 +51,23 @@ class AuthViewModel(private val userRepository: UserRepository) : ViewModel() {
             return
         }
 
+        if (username.length <= 8) {
+            _registerState.value = AuthState.Error("Tên đăng nhập phải dài hơn 8 ký tự")
+            return
+        }
+
+        if (!password.matches(passwordRegex)) {
+            _registerState.value = AuthState.Error("Mật khẩu phải dài hơn 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt")
+            return
+        }
+
         _registerState.value = AuthState.Loading
         viewModelScope.launch {
-            val success = userRepository.register(UserEntity(username = username, password = password, fullname = fullname))
-            if (success) {
-                _registerState.value = AuthState.Success(null)
-            } else {
-                _registerState.value = AuthState.Error("Đăng ký thất bại: Tài khoản đã tồn tại")
+            val result = userRepository.registerRemote(username, password, fullname)
+            result.onSuccess {
+                _registerState.value = AuthState.Success("USER")
+            }.onFailure { e ->
+                _registerState.value = AuthState.Error("Đăng ký thất bại: ${e.message}")
             }
         }
     }
@@ -55,10 +77,4 @@ class AuthViewModel(private val userRepository: UserRepository) : ViewModel() {
         _registerState.value = AuthState.Idle
     }
 }
-
-sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
-    data class Success(val user: UserEntity?) : AuthState()
-    data class Error(val message: String) : AuthState()
-}
+// 🛠️ ĐÃ XÓA KHỐI AuthViewModelFactory TẠI ĐÂY ĐỂ ĐỒNG BỘ VỚI ViewModelFactories.kt, DẬP TẮT LỖI REDECLARATION!

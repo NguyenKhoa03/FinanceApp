@@ -1,14 +1,24 @@
 package com.example.financeapp.viewmodel
 
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.lifecycle.viewModelScope
+import com.example.financeapp.data.repository.UserRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(private val userRepository: UserRepository) : ViewModel() {
 
-    private val _username = MutableStateFlow("Nguyễn Văn A")
-    val username = _username.asStateFlow()
-
-    private val _email = MutableStateFlow("user@gmail.com")
-    val email = _email.asStateFlow()
+    val displayName = userRepository.currentUser.map { user ->
+        val name = user?.full_name
+        if (name.isNullOrBlank()) {
+            user?.username ?: "Người dùng"
+        } else {
+            name
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "Đang tải..."
+    )
 }

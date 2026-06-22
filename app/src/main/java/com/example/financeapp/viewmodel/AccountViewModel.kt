@@ -1,49 +1,66 @@
 package com.example.financeapp.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.financeapp.data.local.entity.AccountEntity
 import com.example.financeapp.data.repository.AccountRepository
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class AccountViewModel(private val repository: AccountRepository) : ViewModel() {
+class AccountViewModel(private val accountRepository: AccountRepository) : ViewModel() {
 
-    val allAccounts: StateFlow<List<AccountEntity>> = repository.allAccounts
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Đồng bộ danh sách tài khoản ngân hàng/ví (allAccounts) khớp hoàn toàn với HomeScreen
+    private val _allAccounts = MutableStateFlow<List<AccountEntity>>(emptyList())
+    val allAccounts: StateFlow<List<AccountEntity>> = _allAccounts.asStateFlow()
 
-    val totalBalance: StateFlow<Double?> = repository.totalBalance
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    init {
+        // Tự động lắng nghe và nạp dữ liệu từ SQLite local/server ngay khi mở app
+        loadAccounts()
+    }
 
-    fun addAccount(name: String, balance: Double) {
+    private fun loadAccounts() {
         viewModelScope.launch {
-            val newAccount = AccountEntity(id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt(), name = name, balance = balance)
-            repository.insert(newAccount)
+            // Lấy dòng chảy dữ liệu (Flow) từ Repository để cập nhật giao diện thời gian thực
+            accountRepository.allAccounts.collectLatest { accountsList ->
+                _allAccounts.value = accountsList
+            }
         }
     }
 
-    fun updateAccount(account: AccountEntity) {
+    // Hàm thêm ví mới kết hợp xử lý mạng của Repository (Yêu cầu truyền vào AccountEntity)
+    fun insertAccount(account: AccountEntity) {
         viewModelScope.launch {
-            repository.update(account)
+            try {
+                // Repository cần truyền user_id và thực thể account
+                accountRepository.insert(userId = account.user_id, account = account)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
+    // Hàm xóa ví ngân hàng đồng bộ dữ liệu cục bộ lẫn máy chủ
     fun deleteAccount(account: AccountEntity) {
         viewModelScope.launch {
-            repository.delete(account)
+            try {
+                accountRepository.delete(account)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
-}
 
-class AccountViewModelFactory(private val repository: AccountRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(AccountViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return AccountViewModel(repository) as T
+    // Hàm cập nhật ví ngân hàng
+    fun updateAccount(account: AccountEntity) {
+        viewModelScope.launch {
+            try {
+                accountRepository.update(account)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

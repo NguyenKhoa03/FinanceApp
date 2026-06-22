@@ -20,4 +20,6 @@ sealed class Screen(
     object Budget : Screen("budget", "Budget", Icons.Default.ShoppingCart)
     object Statistics : Screen("statistics", "Statistics", Icons.Default.DateRange)
     object Profile : Screen("profile", "Profile", Icons.Default.AccountCircle)
+    
+    object Categories : Screen("categories")
 }

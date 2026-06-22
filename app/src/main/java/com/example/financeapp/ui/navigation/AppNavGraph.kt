@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.financeapp.data.remote.RetrofitClient
 import com.example.financeapp.ui.screens.MainScreen
+import com.example.financeapp.ui.screens.admin.AdminScreen
 import com.example.financeapp.ui.screens.login.LoginScreen
 import com.example.financeapp.ui.screens.register.RegisterScreen
 import com.example.financeapp.ui.screens.profile.ChangePasswordScreen
@@ -17,12 +19,20 @@ fun AppNavGraph() {
         navController = navController,
         startDestination = Screen.Login.route
     ) {
-        // 1. Màn hình Đăng nhập
+        // 1. Màn hình Đăng nhập (Đã bổ sung rẽ nhánh phân quyền)
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginClick = {
-                    navController.navigate(Screen.MainFlow.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                onNavigateToDashboard = { role ->
+                    if (role == "ADMIN") {
+                        // 👑 Nếu là ADMIN -> Đưa thẳng sang màn hình quản lý hệ thống
+                        navController.navigate("admin_screen") {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        // 👤 Nếu là USER thường -> Đi vào luồng tính năng chính (MainFlow)
+                        navController.navigate(Screen.MainFlow.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 },
                 onRegisterClick = {
@@ -40,31 +50,36 @@ fun AppNavGraph() {
             )
         }
 
-        // 3. Luồng chính sau khi Login thành công (Chứa các Tab Home, Transaction, Budget, Profile)
+        // 3. Luồng chính sau khi Login thành công (Quyền USER)
         composable(Screen.MainFlow.route) {
-            // Truyền các sự kiện Logout và chuyển màn hình Đổi mật khẩu vào MainScreen
             MainScreen(
                 onNavigateToChangePassword = {
                     navController.navigate("change_password")
                 },
                 onLogoutClick = {
                     navController.navigate(Screen.Login.route) {
-                        // Xóa sạch lịch sử để không bấm phím Back quay lại MainFlow được
                         popUpTo(Screen.MainFlow.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // 4. Màn hình Đổi mật khẩu (Giai đoạn 3)
+        // 4. Màn hình Đổi mật khẩu
         composable("change_password") {
             ChangePasswordScreen(
                 onBackClick = {
-                    navController.popBackStack() // Quay lại MainScreen
+                    navController.popBackStack()
                 },
                 onSaveSuccess = {
-                    navController.popBackStack() // Lưu thành công cũng quay lại MainScreen
+                    navController.popBackStack()
                 }
+            )
+        }
+
+        // 5. 🛠️ ĐÃ THÊM: Màn hình quản trị cho ADMIN toàn quyền thêm sửa xóa
+        composable("admin_screen") {
+            AdminScreen(
+                apiService = RetrofitClient.api
             )
         }
     }

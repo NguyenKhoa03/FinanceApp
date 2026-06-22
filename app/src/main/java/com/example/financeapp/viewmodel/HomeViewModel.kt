@@ -6,12 +6,13 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class HomeViewModel : ViewModel() {
 
-    private val _balance = MutableStateFlow(15000000)
+    // 🛠️ ĐÃ SỬA: Ép kiểu dữ liệu số tiền mặc định sang Long (thêm ký tự L phía sau)
+    private val _balance = MutableStateFlow(15000000L)
     val balance = _balance.asStateFlow()
 
-    private val _income = MutableStateFlow(20000000)
+    private val _income = MutableStateFlow(20000000L)
     val income = _income.asStateFlow()
 
-    private val _expense = MutableStateFlow(5000000)
+    private val _expense = MutableStateFlow(5000000L)
     val expense = _expense.asStateFlow()
 }

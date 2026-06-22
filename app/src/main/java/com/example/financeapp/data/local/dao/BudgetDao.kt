@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BudgetDao {
-    @Query("SELECT * FROM budgets WHERE monthYear = :monthYear")
+    // 🛠️ ĐÃ SỬA: Đổi monthYear thành month_year trong câu lệnh SQL cho đúng Entity mới
+    @Query("SELECT * FROM budgets WHERE month_year = :monthYear")
     fun getBudgetsByMonth(monthYear: String): Flow<List<BudgetEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -18,6 +19,7 @@ interface BudgetDao {
     @Delete
     suspend fun deleteBudget(budget: BudgetEntity)
 
-    @Query("SELECT * FROM budgets WHERE categoryId = :categoryId AND monthYear = :monthYear LIMIT 1")
+    // 🛠️ ĐÃ SỬA: Đổi sang category_id và month_year trong câu lệnh SQL
+    @Query("SELECT * FROM budgets WHERE category_id = :categoryId AND month_year = :monthYear LIMIT 1")
     suspend fun getBudgetByCategoryAndMonth(categoryId: Int, monthYear: String): BudgetEntity?
 }

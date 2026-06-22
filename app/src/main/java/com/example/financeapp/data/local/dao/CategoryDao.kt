@@ -20,7 +20,8 @@ interface CategoryDao {
 
     @Delete
     suspend fun deleteCategory(category: CategoryEntity)
-    
-    @Query("SELECT * FROM categories WHERE id = :id")
+
+    // 🛠️ ĐÃ SỬA: Khớp câu lệnh SQL với cột category_id
+    @Query("SELECT * FROM categories WHERE category_id = :id")
     suspend fun getCategoryById(id: Int): CategoryEntity?
 }
